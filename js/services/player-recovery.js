@@ -19,7 +19,6 @@ export async function removeDisconnectedPlayer(roomCode, targetUid) {
     [`rooms/${roomCode}/players/${targetUid}`]: null,
     [`rooms/${roomCode}/colorClaims/${target.colorId}`]: null,
     [`rooms/${roomCode}/round/ready`]: null,
-    [`rooms/${roomCode}/round/result`]: null,
     [`rooms/${roomCode}/round/error`]: "Игрок покинул игру. Кон перезапущен.",
     [`rooms/${roomCode}/endVote`]: null,
     [`roomSecrets/${roomCode}/submissions`]: null,
