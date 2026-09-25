@@ -22,7 +22,8 @@ export async function removeDisconnectedPlayer(roomCode, targetUid) {
     [`rooms/${roomCode}/round/result`]: null,
     [`rooms/${roomCode}/round/error`]: "Игрок покинул игру. Кон перезапущен.",
     [`rooms/${roomCode}/endVote`]: null,
-    [`roomSecrets/${roomCode}/submissions`]: null
+    [`roomSecrets/${roomCode}/submissions`]: null,
+    [`rooms/${roomCode}/meta/playerCount`]: remaining.length
   };
   if (remaining.length < 3) {
     updates[`rooms/${roomCode}/meta/roundNumber`] = Math.max(0, Number(room.meta?.roundNumber ?? 1) - 1);

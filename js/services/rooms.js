@@ -29,7 +29,7 @@ export async function createRoom({ name, colorId }) {
     const roomCode = generateRoomCode();
     const metaRef = ref(db, `rooms/${roomCode}/meta`);
     const creation = await runTransaction(metaRef, current => current === null ? {
-      hostId: user.uid, status: "lobby", phase: "LOBBY", roundNumber: 0, leaderId: "", turnOrder: {}, createdAt: Date.now()
+      hostId: user.uid, status: "lobby", phase: "LOBBY", roundNumber: 0, playerCount: 0, leaderId: "", turnOrder: {}, createdAt: Date.now()
     } : undefined, { applyLocally: false });
     if (!creation.committed) continue;
     if (!await claimColor(roomCode, colorId, user.uid)) { await remove(metaRef); continue; }
@@ -77,7 +77,7 @@ export async function startRoomGame(roomCode) {
   if (players.length < 3 || players.length > 6) throw new Error("Для игры нужно от 3 до 6 игроков.");
   if (players.some(([, player]) => player.connected !== true)) throw new Error("Все игроки должны быть в сети.");
   const turnOrder = players.map(([uid]) => uid);
-  await update(ref(db, `rooms/${roomCode}/meta`), { status: "playing", phase: "ROUND_INPUT", roundNumber: 1, leaderId: turnOrder[0], turnOrder });
+  await update(ref(db, `rooms/${roomCode}/meta`), { status: "playing", phase: "ROUND_INPUT", roundNumber: 1, playerCount: players.length, leaderId: turnOrder[0], turnOrder });
 }
 
 export async function leaveLobby(roomCode) {

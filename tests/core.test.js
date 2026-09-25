@@ -83,4 +83,6 @@ test("production rules сохраняют приватность и раздел
   assert.match(rules, /auth\.uid === \$uid/);
   assert.match(rules, /colorClaims/);
   assert.match(rules, /meta\/hostId/);
+  assert.match(rules, /playerCount/);
+  assert.doesNotMatch(rules, /numChildren/);
 });

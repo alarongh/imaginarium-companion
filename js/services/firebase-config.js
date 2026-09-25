@@ -1,10 +1,9 @@
-// Этот файл будет заполнен конфигурацией Firebase Web App перед публикацией.
 export const firebaseConfig = {
-  apiKey: "REPLACE_WITH_FIREBASE_CONFIG",
-  authDomain: "REPLACE_WITH_FIREBASE_CONFIG",
-  databaseURL: "REPLACE_WITH_FIREBASE_CONFIG",
-  projectId: "REPLACE_WITH_FIREBASE_CONFIG",
-  storageBucket: "REPLACE_WITH_FIREBASE_CONFIG",
-  messagingSenderId: "REPLACE_WITH_FIREBASE_CONFIG",
-  appId: "REPLACE_WITH_FIREBASE_CONFIG"
+  apiKey: "AIzaSyC0mLOepFrKjI9C_Ztl-dI_G8pPhn-ur6M",
+  authDomain: "imaginarium-companion.firebaseapp.com",
+  databaseURL: "https://imaginarium-companion-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "imaginarium-companion",
+  storageBucket: "imaginarium-companion.firebasestorage.app",
+  messagingSenderId: "607960297792",
+  appId: "1:607960297792:web:e7654c2706ea8670f88aa5"
 };

@@ -4,7 +4,10 @@ import { getEndVoteCounts } from "../core/game-state.js";
 
 export async function startEndVote(roomCode) {
   const user = await ensureAnonymousUser();
-  const result = await runTransaction(ref(db, `rooms/${roomCode}/endVote`), current => current?.active ? current : { active: true, requestedBy: user.uid, openedAt: Date.now(), votes: { [user.uid]: true } }, { applyLocally: false });
+  const result = await runTransaction(ref(db, `rooms/${roomCode}/endVote`), current => current?.active ? undefined : { active: true, requestedBy: user.uid, openedAt: Date.now() }, { applyLocally: false });
+  if (result.committed || result.snapshot.val()?.active) {
+    await update(ref(db, `rooms/${roomCode}/endVote/votes`), { [user.uid]: true });
+  }
   return result.committed;
 }
 
