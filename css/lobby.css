@@ -1,0 +1,28 @@
+.home { max-width: 620px; margin-top: 5vh; }
+.home-title { margin: 24px 0 14px; font-size: clamp(2.3rem, 8vw, 4.2rem); line-height: .98; letter-spacing: -.055em; }
+.home-description { max-width: 520px; margin: 0 0 28px; color: var(--text-secondary); font-size: 1.05rem; }
+.home-actions { display: grid; gap: 16px; }
+.join-form { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+.profile-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.color-options { display: flex; gap: 10px; flex-wrap: wrap; }
+.player-color-option {
+  width: 44px; height: 44px; border: 2px solid transparent; border-radius: 50%;
+  background: var(--option-color); box-shadow: inset 0 0 0 4px var(--surface);
+}
+.player-color-option.selected { border-color: white; transform: scale(1.08); }
+.home-divider { display: flex; align-items: center; gap: 12px; color: var(--text-muted); font-size: .75rem; }
+.home-divider::before, .home-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.room-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 24px; }
+.room-title { margin: 10px 0 4px; font-size: 2rem; letter-spacing: -.035em; }
+.room-code { font-size: 1.8rem; font-weight: 800; letter-spacing: .12em; }
+.lobby-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; }
+.players-list { display: grid; gap: 9px; margin-top: 16px; }
+.player-row { min-height: 62px; display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; }
+.player-color { width: 15px; height: 15px; flex: none; border-radius: 50%; background: var(--player-color); box-shadow: 0 0 18px color-mix(in srgb, var(--player-color) 45%, transparent); }
+.player-info { min-width: 0; flex: 1; }
+.player-name { overflow-wrap: anywhere; font-weight: 700; }
+.player-meta { margin-top: 2px; color: var(--text-muted); font-size: .75rem; }
+.player-tags { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+.lobby-side { display: grid; align-content: start; gap: 12px; }
+.lobby-note { margin: 0; color: var(--text-secondary); font-size: .9rem; }
+@media (max-width: 760px) { .lobby-layout { grid-template-columns: 1fr; } .room-header { flex-direction: column; } .join-form { grid-template-columns: 1fr; } }

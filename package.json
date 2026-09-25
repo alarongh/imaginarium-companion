@@ -1,0 +1,10 @@
+{
+  "name": "imaginarium-companion",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/core.test.js",
+    "check": "node --check js/app.js"
+  }
+}
