@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node tests/core.test.js",
+    "test:firebase": "node tests/firebase.integration.mjs",
     "check": "node --check js/app.js"
   }
 }

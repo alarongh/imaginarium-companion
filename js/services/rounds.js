@@ -77,6 +77,7 @@ export async function advanceRound(roomCode, { nextLeaderId, nextRoundNumber }) 
   const user = await ensureAnonymousUser();
   const room = await requireRole(roomCode, user.uid, "host");
   if (room.meta?.phase !== "RESULTS") throw new Error("Текущий кон ещё не завершён.");
+  if (room.endVote?.active) throw new Error("Сначала завершите голосование за окончание партии.");
   const result = room.round?.result;
   if (!result?.baseProgress || !result?.deltas) throw new Error("Результат текущего кона отсутствует.");
   const updates = {

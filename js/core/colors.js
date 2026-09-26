@@ -4,7 +4,8 @@ export const PLAYER_COLORS = [
   { id: "green", value: "#62ce91", label: "Зелёный" },
   { id: "yellow", value: "#f2b75f", label: "Жёлтый" },
   { id: "purple", value: "#bb73ed", label: "Фиолетовый" },
-  { id: "cyan", value: "#55cbd3", label: "Бирюзовый" }
+  { id: "cyan", value: "#55cbd3", label: "Бирюзовый" },
+  { id: "orange", value: "#f28a4b", label: "Оранжевый" }
 ];
 
 export function isValidColorId(colorId) {

@@ -9,7 +9,7 @@ export function getNextLeaderId(turnOrder, currentLeaderId) {
   return turnOrder[(currentIndex + 1) % turnOrder.length];
 }
 
-export function getBoardPosition(progress, boardSize = 24) {
+export function getBoardPosition(progress, boardSize = 39) {
   if (!Number.isInteger(progress) || progress < 0) throw new Error("progress должен быть неотрицательным целым числом.");
   if (!Number.isInteger(boardSize) || boardSize < 1) throw new Error("Некорректный размер поля.");
   return { circle: Math.floor(progress / boardSize) + 1, cell: (progress % boardSize) + 1 };

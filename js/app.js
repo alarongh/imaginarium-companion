@@ -3,7 +3,7 @@ import { getNextLeaderId, normalizeArray, normalizeSubmissions, getEndVoteCounts
 import { calculateRound, RoundValidationError } from "./core/scoring.js";
 import { getRequiredOwnCardCount } from "./core/validation.js";
 import { ensureAnonymousUser, isFirebaseConfigured } from "./services/firebase.js";
-import { createRoom, joinRoom, leaveLobby, startRoomGame, subscribeRoom } from "./services/rooms.js";
+import { cancelRoomEntry, createRoom, getRoom, joinRoom, leaveLobby, prepareRoomEntry, startRoomGame, subscribeRoom } from "./services/rooms.js";
 import { advanceRound, normalizeSubmission, promoteReadyToReveal, publishRoundResult, readAllSubmissions, resetInvalidRound, submitRoundChoice, subscribeMySubmission } from "./services/rounds.js";
 import { clearRoomSession, loadProfile, loadRoomSession, saveProfile, saveRoomSession } from "./services/session.js";
 import { clearDraft, loadDraft, saveDraft } from "./services/draft-cache.js";
@@ -12,6 +12,7 @@ import { claimHostIfOffline } from "./services/host-recovery.js";
 import { removeDisconnectedPlayer } from "./services/player-recovery.js";
 import { castEndVote, finishGame, rejectEndVote, startEndVote } from "./services/end-game.js";
 import { renderHome } from "./ui/home.js";
+import { renderColorPicker } from "./ui/color-picker.js";
 import { renderLobby } from "./ui/lobby.js";
 import { renderGame } from "./ui/game.js";
 import { renderResults } from "./ui/results.js";
@@ -32,12 +33,15 @@ let unsubscribeRoom = null;
 let unsubscribeSubmission = null;
 let unsubscribePresence = null;
 let hostRecoveryTimer = null;
+let autoNextTimer = null;
+let autoNextKey = null;
 let endVoteResolutionInFlight = false;
 const operationLocks = new Set();
 
 function render() {
   if (state.screen === "loading") app.innerHTML = `<main class="app loading"><section class="panel panel-padding loading-card">Подключаемся…</section></main>`;
   else if (state.screen === "home") app.innerHTML = renderHome(state);
+  else if (state.screen === "color") app.innerHTML = renderColorPicker(state);
   else if (state.screen === "lobby") app.innerHTML = renderLobby(state);
   else if (state.screen === "game") app.innerHTML = renderGame(state);
   else if (state.screen === "results") app.innerHTML = renderResults(state);
@@ -50,6 +54,13 @@ function stopSubscriptions() {
   unsubscribeRoom?.(); unsubscribeSubmission?.(); unsubscribePresence?.();
   unsubscribeRoom = null; unsubscribeSubmission = null; unsubscribePresence = null;
   clearTimeout(hostRecoveryTimer); hostRecoveryTimer = null;
+  clearAutomaticNextRound();
+}
+
+function clearAutomaticNextRound() {
+  clearTimeout(autoNextTimer);
+  autoNextTimer = null;
+  autoNextKey = null;
 }
 
 async function withLock(key, operation) {
@@ -80,6 +91,53 @@ async function connectToRoom(roomCode) {
   unsubscribePresence = startPresence(roomCode, { onConnectionChange: online => { state.connectionOnline = online; render(); } });
 }
 
+async function enterColorSelection(roomCode) {
+  stopSubscriptions();
+  const user = await ensureAnonymousUser();
+  state.userId = user.uid;
+  state.roomCode = roomCode;
+  state.error = null;
+  state.screen = "color";
+  saveRoomSession(roomCode);
+  unsubscribeRoom = subscribeRoom(roomCode, room => {
+    if (!room) {
+      stopSubscriptions();
+      clearRoomSession();
+      Object.assign(state, { screen: "home", room: null, roomCode: null, error: "Комната больше не существует." });
+      render();
+      return;
+    }
+    if (room.players?.[state.userId]) {
+      void connectToRoom(roomCode);
+      return;
+    }
+    if (room.meta?.status !== "lobby") {
+      stopSubscriptions();
+      clearRoomSession();
+      Object.assign(state, { screen: "home", room: null, roomCode: null, error: "Игра уже началась." });
+      render();
+      return;
+    }
+    state.room = room;
+    state.screen = "color";
+    render();
+  }, error => { state.error = friendlyError(error); render(); });
+  render();
+}
+
+function mapPlayers(room) {
+  return Object.entries(room.players ?? {}).map(([id, player]) => ({
+    id,
+    name: String(player.name ?? "Игрок"),
+    colorId: player.colorId,
+    color: getColorValue(player.colorId),
+    progress: Number(player.progress ?? 0),
+    connected: player.connected === true,
+    isHost: room.meta?.hostId === id,
+    joinedAt: player.joinedAt ?? 0
+  }));
+}
+
 function applyRemoteRoom(room) {
   if (!room || !room.players?.[state.userId]) {
     stopSubscriptions(); clearRoomSession(); Object.assign(state, { screen: "home", room: null, roomCode: null, error: room ? "Вы больше не участвуете в этой комнате." : "Комната больше не существует." }); render(); return;
@@ -92,7 +150,7 @@ function applyRemoteRoom(room) {
   state.phase = room.meta?.phase ?? "LOBBY";
   state.round = { ready: room.round?.ready ?? {}, result: room.round?.result ?? null, error: room.round?.error ?? null };
   state.endVote = room.endVote ?? null;
-  state.players = Object.entries(room.players ?? {}).map(([id, player]) => ({ id, name: String(player.name ?? "Игрок"), colorId: player.colorId, color: getColorValue(player.colorId), progress: Number(player.progress ?? 0), connected: player.connected === true, isHost: room.meta?.hostId === id, joinedAt: player.joinedAt ?? 0 }));
+  state.players = mapPlayers(room);
   const key = `${state.roomCode}:${state.roundNumber}:${state.userId}`;
   if (previousRound !== state.roundNumber) { state.mySubmission = null; state.draftDirty = false; }
   if (state.phase === "ROUND_INPUT" && state.round.ready?.[state.userId] !== true && !state.mySubmission && !state.draftDirty && state.draftKey !== key) {
@@ -105,6 +163,7 @@ function applyRemoteRoom(room) {
   else state.screen = "game";
   render();
   scheduleHostRecovery();
+  scheduleAutomaticNextRound();
   if (state.phase === "ROUND_INPUT" && state.userId === state.leaderId && state.players.length && state.players.every(player => state.round.ready?.[player.id] === true)) void withLock("promote-ready", () => promoteReadyToReveal(state.roomCode));
   void maybeResolveEndVote();
 }
@@ -114,7 +173,26 @@ function scheduleHostRecovery() {
   if (!state.room || state.phase === "FINISHED") return;
   const host = state.players.find(player => player.isHost);
   if (!host || host.connected !== false) return;
-  hostRecoveryTimer = setTimeout(() => claimHostIfOffline(state.roomCode).catch(error => console.error("Host recovery:", error)), 10000);
+  const lastSeen = Number(state.room.players?.[host.id]?.lastSeen ?? 0);
+  const delay = Math.max(1000, 16000 - (Date.now() - lastSeen));
+  hostRecoveryTimer = setTimeout(() => claimHostIfOffline(state.roomCode).catch(error => console.error("Host recovery:", error)), delay);
+}
+
+function scheduleAutomaticNextRound() {
+  const me = state.players.find(player => player.id === state.userId);
+  const key = `${state.roomCode}:${state.roundNumber}`;
+  const shouldRun = state.phase === "RESULTS" && Boolean(state.round.result) && !state.endVote?.active && me?.isHost;
+  if (!shouldRun) {
+    clearAutomaticNextRound();
+    return;
+  }
+  if (autoNextKey === key && autoNextTimer) return;
+  clearAutomaticNextRound();
+  autoNextKey = key;
+  autoNextTimer = setTimeout(() => {
+    autoNextTimer = null;
+    void withLock("next-round", nextRound);
+  }, 12000);
 }
 
 async function maybeResolveEndVote() {
@@ -192,15 +270,26 @@ app.addEventListener("submit", event => {
   if (event.target.dataset.form !== "join-room") return;
   event.preventDefault();
   const roomCode = new FormData(event.target).get("roomCode");
-  void withLock("join-room", async () => { const code = await joinRoom({ roomCode, ...state.profile }); await connectToRoom(code); });
+  void withLock("join-room", async () => { const code = await prepareRoomEntry({ roomCode, name: state.profile.name }); await enterColorSelection(code); });
 });
 
 app.addEventListener("click", event => {
   const target = event.target.closest("[data-action]");
   if (!target) return;
   const action = target.dataset.action;
-  if (action === "select-color") { state.profile.colorId = target.dataset.color; saveProfile(state.profile); render(); }
-  else if (action === "create-room") void withLock("create-room", async () => { const code = await createRoom(state.profile); await connectToRoom(code); });
+  if (action === "create-room") void withLock("create-room", async () => { const code = await createRoom({ name: state.profile.name }); await enterColorSelection(code); });
+  else if (action === "choose-room-color") void withLock("choose-room-color", async () => {
+    state.profile.colorId = target.dataset.color;
+    saveProfile(state.profile);
+    const code = await joinRoom({ roomCode: state.roomCode, name: state.profile.name, colorId: state.profile.colorId });
+    await connectToRoom(code);
+  });
+  else if (action === "cancel-room-entry") void withLock("cancel-room-entry", async () => {
+    await cancelRoomEntry(state.roomCode);
+    stopSubscriptions();
+    clearRoomSession();
+    Object.assign(state, { screen: "home", room: null, roomCode: null, error: null });
+  });
   else if (action === "copy-room-code") void navigator.clipboard.writeText(state.roomCode).then(() => { state.copyFeedback = true; render(); setTimeout(() => { state.copyFeedback = false; render(); }, 1200); }).catch(() => {});
   else if (action === "start-game") void withLock("start-game", () => startRoomGame(state.roomCode));
   else if (action === "choose-own-card") chooseOwnCard(Number(target.dataset.card));
@@ -220,8 +309,17 @@ async function bootstrap() {
   try {
     const user = await ensureAnonymousUser(); state.userId = user.uid;
     const session = loadRoomSession();
-    if (session?.roomCode) await connectToRoom(session.roomCode);
-    else { state.screen = "home"; render(); }
+    if (session?.roomCode) {
+      const room = await getRoom(session.roomCode);
+      if (room?.players?.[user.uid]) await connectToRoom(session.roomCode);
+      else if (room?.meta?.status === "lobby") await enterColorSelection(session.roomCode);
+      else {
+        clearRoomSession();
+        state.screen = "home";
+        state.error = room ? "Игра уже началась." : "Сохранённая комната больше не существует.";
+        render();
+      }
+    } else { state.screen = "home"; render(); }
   } catch (error) { state.screen = "home"; state.error = friendlyError(error); render(); }
 }
 

@@ -24,7 +24,7 @@ export async function removeDisconnectedPlayer(roomCode, targetUid) {
     [`roomSecrets/${roomCode}/submissions`]: null,
     [`rooms/${roomCode}/meta/playerCount`]: remaining.length
   };
-  if (remaining.length < 3) {
+  if (remaining.length < 1) {
     updates[`rooms/${roomCode}/meta/roundNumber`] = Math.max(0, Number(room.meta?.roundNumber ?? 1) - 1);
     updates[`rooms/${roomCode}/meta/status`] = "finished";
     updates[`rooms/${roomCode}/meta/phase`] = "FINISHED";

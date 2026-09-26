@@ -10,7 +10,7 @@ export function getRequiredOwnCardCount(playerCount, playerId, leaderId) {
 export function validateRound({ playerIds, leaderId, submissions }) {
   const errors = [];
   if (!Array.isArray(playerIds)) return invalid("INVALID_PLAYERS", "playerIds должен быть массивом.");
-  if (playerIds.length < 3 || playerIds.length > 6) errors.push(issue("INVALID_PLAYER_COUNT", "Поддерживается от 3 до 6 игроков."));
+  if (playerIds.length < 1 || playerIds.length > 7) errors.push(issue("INVALID_PLAYER_COUNT", "Поддерживается от 1 до 7 игроков."));
   if (new Set(playerIds).size !== playerIds.length) errors.push(issue("DUPLICATE_PLAYER", "ID игроков должны быть уникальными."));
   if (!playerIds.includes(leaderId)) errors.push(issue("INVALID_LEADER", "Ведущий отсутствует среди игроков."));
   if (!submissions || typeof submissions !== "object" || Array.isArray(submissions)) {

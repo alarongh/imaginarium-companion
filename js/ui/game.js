@@ -16,7 +16,7 @@ export function renderGame(state) {
   </div>`;
 }
 
-function leaderCard(leader) { return `<section class="panel panel-padding leader-card"><div class="leader-piece" style="--leader-color:${leader.color}">${escapeHtml(leader.name.trim().charAt(0).toUpperCase() || "?")}</div><div><div class="leader-label">Ведущий кона</div><div class="leader-name">${escapeHtml(leader.name)}</div></div></section>`; }
+function leaderCard(leader) { return `<section class="panel panel-padding leader-card"><div class="leader-piece elephant-icon" style="--leader-color:${leader.color}" aria-hidden="true"></div><div><div class="leader-label">Ведущий кона</div><div class="leader-name">${escapeHtml(leader.name)}</div></div></section>`; }
 
 function roundPanel({ state, isLeader, ready, submission, readyCount }) {
   if (state.phase === "READY_TO_REVEAL") return isLeader ? `<div class="waiting"><div><div class="waiting-icon">✦</div><h2 class="choice-title">Все готовы</h2><p class="choice-description">Проверьте физические карты и раскройте результаты.</p><button class="button button-primary button-full" data-action="reveal-results" ${state.busy ? "disabled" : ""}>Раскрыть результаты</button></div></div>` : waiting(readyCount, state.players.length, "Ведущий раскрывает результаты…");

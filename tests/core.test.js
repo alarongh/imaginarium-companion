@@ -47,8 +47,8 @@ test("нельзя голосовать за свою карту", () => {
 
 test("бесконечное поле", () => {
   assert.deepEqual(getBoardPosition(0), { circle: 1, cell: 1 });
-  assert.deepEqual(getBoardPosition(24), { circle: 2, cell: 1 });
-  assert.deepEqual(getBoardPosition(129), { circle: 6, cell: 10 });
+  assert.deepEqual(getBoardPosition(39), { circle: 2, cell: 1 });
+  assert.deepEqual(getBoardPosition(205), { circle: 6, cell: 11 });
 });
 
 test("смена ведущего по кругу", () => {
@@ -56,16 +56,16 @@ test("смена ведущего по кругу", () => {
 });
 
 test("для завершения нужно строгое большинство", () => {
-  for (const [count, required] of [[3,2],[4,3],[5,3],[6,4]]) {
+  for (const [count, required] of [[1,1],[2,2],[3,2],[4,3],[5,3],[6,4],[7,4]]) {
     const ids = Array.from({ length: count }, (_, index) => `p${index}`);
     assert.equal(getEndVoteCounts(ids, {}).required, required);
   }
 });
 
-test("валидные раскладки поддерживаются для 4, 5 и 6 игроков", () => {
-  for (const count of [4, 5, 6]) {
+test("валидные раскладки поддерживаются для 1, 2 и 4–7 игроков", () => {
+  for (const count of [1, 2, 4, 5, 6, 7]) {
     const ids = Array.from({ length: count }, (_, index) => `p${index + 1}`);
-    const submissions = Object.fromEntries(ids.map((id, index) => [id, index === 0 ? { ownCards: [1] } : { ownCards: [index + 1], vote: index === 1 ? 1 : 2 }]));
+    const submissions = Object.fromEntries(ids.map((id, index) => [id, index === 0 ? { ownCards: [1] } : { ownCards: [index + 1], vote: 1 }]));
     const result = calculateRound({ playerIds: ids, leaderId: ids[0], submissions });
     assert.equal(result.cardCount, count);
     assert.equal(Object.keys(result.deltas).length, count);
@@ -84,5 +84,16 @@ test("production rules сохраняют приватность и раздел
   assert.match(rules, /colorClaims/);
   assert.match(rules, /meta\/hostId/);
   assert.match(rules, /playerCount/);
+  assert.match(rules, /playerCount'\)\.val\(\) <= 7/);
+  assert.match(rules, /lastSeen'\)\.val\(\) <= now - 15000/);
+  assert.match(rules, /orange/);
   assert.doesNotMatch(rules, /numChildren/);
+});
+
+test("цвет выбирается после входа в комнату", () => {
+  const home = readFileSync(new URL("../js/ui/home.js", import.meta.url), "utf8");
+  const picker = readFileSync(new URL("../js/ui/color-picker.js", import.meta.url), "utf8");
+  assert.doesNotMatch(home, /select-color|Цвет фишки/);
+  assert.match(picker, /choose-room-color/);
+  assert.match(picker, /Занят/);
 });
